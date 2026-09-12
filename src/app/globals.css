@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/*
+ * STMS design tokens.
+ *
+ * The palette is built for a traffic control room: a deep neutral ground so
+ * that the only saturated colour on screen is signal state (red / amber /
+ * green) and alert severity. That keeps the operator's eye where it matters.
+ */
+@theme {
+  --color-ground: #070a12;
+  --color-surface: #0d121e;
+  --color-surface-2: #131a29;
+  --color-line: #1e2739;
+  --color-line-soft: #172033;
+
+  --color-ink: #e8edf7;
+  --color-ink-dim: #93a1bb;
+  --color-ink-faint: #5d6b85;
+
+  --color-signal-green: #22c55e;
+  --color-signal-amber: #f5b301;
+  --color-signal-red: #ef4444;
+
+  --color-accent: #38bdf8;
+  --color-accent-deep: #0ea5e9;
+  --color-positive: #34d399;
+  --color-negative: #fb7185;
+
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100dvh;
+  background-image:
+    radial-gradient(900px 500px at 12% -10%, rgba(56, 189, 248, 0.07), transparent 60%),
+    radial-gradient(800px 460px at 92% 0%, rgba(52, 211, 153, 0.05), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Tabular numerals stop live metrics jittering as digits change width. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.card {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border: 1px solid var(--color-line);
+  border-radius: 0.875rem;
+}
+
+.card-tight {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line-soft);
+  border-radius: 0.625rem;
+}
+
+/* Slow, calm pulse for live indicators - fast blinking is fatiguing. */
+@keyframes stms-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse {
+  animation: stms-pulse 2s ease-in-out infinite;
+}
+
+@keyframes stms-alarm {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+.alarm {
+  animation: stms-alarm 1.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .alarm {
+    animation: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2b3a52;
+}
+
+
+input[type="range"] {
+  accent-color: var(--color-accent);
+}
