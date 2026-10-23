@@ -253,11 +253,18 @@ export async function getTrafficLogs(
       .sort({ recordedAt: -1 })
       .limit(limit)
       .lean();
-    return docs.map(fromMongoLog).reverse();
+    if (docs.length > 0) return docs.map(fromMongoLog).reverse();
+
+    // Nothing recorded under this exact intersectionId - fall back to whatever
+    // the most recent simulation run actually wrote, so a demo still shows
+    // data regardless of which junction was selected when it ran.
+    const fallback = await TrafficLog().find({}).sort({ recordedAt: -1 }).limit(limit).lean();
+    return fallback.map(fromMongoLog).reverse();
   }
-  return memory()
-    .logs.filter((l) => l.intersectionId === intersectionId)
-    .slice(-limit);
+
+  const matching = memory().logs.filter((l) => l.intersectionId === intersectionId);
+  if (matching.length > 0) return matching.slice(-limit);
+  return memory().logs.slice(-limit);
 }
 
 // ---------------------------------------------------------------------------
@@ -375,7 +382,10 @@ export async function listIncidents(
 ): Promise<IncidentRecord[]> {
   if ((await getBackend()) === "mongodb") {
     const filter = intersectionId ? { intersectionId } : {};
-    const docs = await Incident().find(filter).sort({ occurredAt: -1 }).limit(limit).lean();
+    let docs = await Incident().find(filter).sort({ occurredAt: -1 }).limit(limit).lean();
+    if (docs.length === 0 && intersectionId) {
+      docs = await Incident().find({}).sort({ occurredAt: -1 }).limit(limit).lean();
+    }
     return docs.map((d) => ({
       id: String(d._id),
       intersectionId: d.intersectionId,
@@ -391,7 +401,8 @@ export async function listIncidents(
   const filtered = intersectionId
     ? all.filter((i) => i.intersectionId === intersectionId)
     : all;
-  return filtered.slice(-limit).reverse();
+  const source = filtered.length > 0 ? filtered : all;
+  return source.slice(-limit).reverse();
 }
 
 // ---------------------------------------------------------------------------

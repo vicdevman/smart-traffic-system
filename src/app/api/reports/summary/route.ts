@@ -94,10 +94,15 @@ export async function GET(request: Request) {
     to: logs[logs.length - 1].recordedAt,
   };
 
+  const fellBack = logs.some((l) => l.intersectionId !== intersectionId);
+
   return NextResponse.json({
     ok: true,
     intersectionId,
     samples: logs.length,
+    note: fellBack
+      ? `No telemetry recorded yet for ${intersectionId} - showing the most recent samples from whichever intersection last ran a simulation.`
+      : undefined,
     window,
     headline: {
       avgWaitTime: round(avg((l) => l.metrics.avgWaitTime), 2),

@@ -20,6 +20,7 @@ interface SummaryResponse {
   intersectionId: string;
   samples: number;
   message?: string;
+  note?: string;
   window?: { from: string; to: string };
   headline?: {
     avgWaitTime: number;
@@ -115,6 +116,12 @@ export default function AnalyticsPage() {
         <code className="rounded bg-[var(--color-surface-2)] px-1">npm run virtual-edge</code> to feed
         the API from a headless controller.
       </p>
+
+      {summary?.note && (
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3.5 py-2.5 text-[11px] leading-relaxed text-amber-200/90">
+          {summary.note}
+        </p>
+      )}
 
       {!hasData ? (
         <Card title="No telemetry recorded yet">
