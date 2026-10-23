@@ -36,22 +36,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Batch too large (max 200)" }, { status: 413 });
   }
 
-  const result = await ingestTelemetry(raw);
+  try {
+    const result = await ingestTelemetry(raw);
 
-  if (result.accepted === 0) {
+    if (result.accepted === 0) {
+      return NextResponse.json(
+        { ok: false, error: "No valid telemetry documents", problems: result.problems },
+        { status: 422 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      accepted: result.accepted,
+      rejected: result.rejected,
+      problems: result.problems.length ? result.problems : undefined,
+      serverTime: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("[STMS] /api/telemetry ingest failed:", error);
     return NextResponse.json(
-      { ok: false, error: "No valid telemetry documents", problems: result.problems },
-      { status: 422 },
+      { ok: false, error: error instanceof Error ? error.message : "Ingest failed" },
+      { status: 500 },
     );
   }
-
-  return NextResponse.json({
-    ok: true,
-    accepted: result.accepted,
-    rejected: result.rejected,
-    problems: result.problems.length ? result.problems : undefined,
-    serverTime: new Date().toISOString(),
-  });
 }
 
 /**

@@ -16,7 +16,7 @@ const MONGODB_DB = process.env.MONGODB_DB?.trim() || "smart_traffic";
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
-  failed: boolean;
+  failedAt: number | null;
 }
 
 declare global {
@@ -25,7 +25,14 @@ declare global {
 }
 
 const cache: MongooseCache =
-  global.__stmsMongoose ?? (global.__stmsMongoose = { conn: null, promise: null, failed: false });
+  global.__stmsMongoose ?? (global.__stmsMongoose = { conn: null, promise: null, failedAt: null });
+
+// After a failed attempt, wait this long before trying again rather than
+// giving up for the lifetime of the process - a warm serverless instance can
+// otherwise get stuck permanently serving the in-memory store because of one
+// transient failure (Atlas cold start, a brief network blip) long after the
+// underlying problem is gone.
+const RETRY_COOLDOWN_MS = 15_000;
 
 /** True when a MongoDB connection string has been configured. */
 export function isDatabaseConfigured(): boolean {
@@ -40,7 +47,7 @@ export function isDatabaseConfigured(): boolean {
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
   if (!isDatabaseConfigured()) return null;
   if (cache.conn) return cache.conn;
-  if (cache.failed) return null;
+  if (cache.failedAt && Date.now() - cache.failedAt < RETRY_COOLDOWN_MS) return null;
 
   if (!cache.promise) {
     cache.promise = mongoose
@@ -51,7 +58,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
         maxPoolSize: 10,
       })
       .catch((error) => {
-        cache.failed = true;
+        cache.failedAt = Date.now();
         cache.promise = null;
         console.error("[STMS] MongoDB connection failed, using in-memory store:", error.message);
         throw error;
@@ -60,6 +67,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
 
   try {
     cache.conn = await cache.promise;
+    cache.failedAt = null;
     return cache.conn;
   } catch {
     return null;
